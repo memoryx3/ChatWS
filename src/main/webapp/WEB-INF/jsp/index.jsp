@@ -8,7 +8,8 @@
   <title>Главная</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <link rel="stylesheet" type="text/css" href="${contextPath}/resources/css/style.css">
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <script type="text/javascript">
         var stompClient = null;
 
@@ -22,12 +23,11 @@
         function connect() {
             var socket = new SockJS('/chat');
             stompClient = Stomp.over(socket);
-            stompClient.connect({}, function(frame) {
+            stompClient.connect({},
+            function(frame) {
                 setConnected(true);
                 console.log('Connected: ' + frame);
-                stompClient.subscribe('/topic/chating', function(message){
-                    showGreeting(JSON.parse(chating.body).content);
-                });
+                stompClient.subscribe('/topic/chating', showMessage);
             });
         }
 
@@ -42,14 +42,16 @@
             stompClient.send("/app/chat", {}, JSON.stringify(message));
         }
 
-        function showMessage(message) {
-            var resp = document.getElementById('messages');
-            resp.value = resp.value + message.data + "\n";
+        function showMessage(payload) {
+            var message = JSON.parse(payload.body);
+            var messageText = message.content;
+            var $textarea = document.getElementById("messages");
+            $textarea.value = $textarea.value + messageText + "\n";
         }
     </script>
 
 </head>
-<body>
+<body onload="connect();">
 <div class="center">
 <div>
   <sec:authorize access="!isAuthenticated()">
@@ -63,6 +65,7 @@
   </sec:authorize>
 </div>
 <div id="chatbox">
+        <p id="response"></p>
         <textarea id="messages" rows="20" cols="50" readonly="readonly"></textarea>
 </div>
 <sec:authorize access="isAuthenticated()">
